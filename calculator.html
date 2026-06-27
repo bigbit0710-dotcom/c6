@@ -79,17 +79,23 @@
         .display {
             background: #1a1a1a;
             color: #ffffff;
-            font-size: 2.5rem;
             padding: 20px;
-            text-align: right;
             border-radius: 10px;
             margin-bottom: 20px;
             min-height: 80px;
             display: flex;
             align-items: center;
             justify-content: flex-end;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
+            overflow: hidden;
+        }
+
+        .display-value {
+            width: 100%;
+            text-align: right;
+            white-space: nowrap;
+            overflow: hidden;
+            font-size: 2.5rem;
+            line-height: 1.2;
         }
 
         .buttons {
@@ -158,7 +164,7 @@
         <div class="header">
             <button class="theme-toggle" id="themeToggle" type="button" aria-label="Переключить тему">🌙 Тёмная</button>
         </div>
-        <div class="display" id="display">0</div>
+        <div class="display" id="display"><span class="display-value" id="displayValue">0</span></div>
         <div class="buttons">
             <button class="clear" onclick="clearDisplay()">C</button>
             <button class="operator" onclick="appendOperator('/')">/</button>
@@ -185,11 +191,17 @@
         </div>
     </div>
 
+    <script src="calculator-core.js"></script>
     <script>
+        const { evaluateExpression, replaceTrailingOperator } = window.CalculatorCore;
+
         let display = document.getElementById('display');
+        let displayValue = document.getElementById('displayValue');
         let themeToggle = document.getElementById('themeToggle');
         let currentInput = '0';
         let shouldResetDisplay = false;
+        const DISPLAY_MAX_FONT = 40;
+        const DISPLAY_MIN_FONT = 14;
 
         function applyTheme(theme) {
             document.documentElement.setAttribute('data-theme', theme);
@@ -205,9 +217,24 @@
         applyTheme(localStorage.getItem('calculator-theme') || 'light');
         themeToggle.addEventListener('click', toggleTheme);
 
-        function updateDisplay() {
-            display.textContent = currentInput;
+        function fitDisplayText() {
+            displayValue.style.fontSize = DISPLAY_MAX_FONT + 'px';
+
+            while (
+                displayValue.scrollWidth > display.clientWidth &&
+                parseFloat(displayValue.style.fontSize) > DISPLAY_MIN_FONT
+            ) {
+                displayValue.style.fontSize =
+                    parseFloat(displayValue.style.fontSize) - 2 + 'px';
+            }
         }
+
+        function updateDisplay() {
+            displayValue.textContent = currentInput;
+            fitDisplayText();
+        }
+
+        window.addEventListener('resize', fitDisplayText);
 
         function appendNumber(number) {
             if (shouldResetDisplay) {
@@ -239,44 +266,16 @@
             if (shouldResetDisplay) {
                 shouldResetDisplay = false;
             }
-            
-            const lastChar = currentInput[currentInput.length - 1];
-            if (['+', '-', '*', '/'].includes(lastChar)) {
-                currentInput = currentInput.slice(0, -1) + operator;
-            } else {
-                currentInput += operator;
-            }
+
+            currentInput = replaceTrailingOperator(currentInput, operator);
             updateDisplay();
         }
 
         function calculate() {
-            try {
-                // Заменяем × на * для вычисления
-                let expression = currentInput.replace(/×/g, '*');
-                
-                // Проверяем на деление на ноль
-                if (expression.includes('/0') && !expression.includes('/0.')) {
-                    currentInput = 'Ошибка';
-                    updateDisplay();
-                    shouldResetDisplay = true;
-                    return;
-                }
-                
-                const result = Function('"use strict"; return (' + expression + ')')();
-                
-                if (isNaN(result) || !isFinite(result)) {
-                    currentInput = 'Ошибка';
-                } else {
-                    currentInput = result.toString();
-                }
-                
-                updateDisplay();
-                shouldResetDisplay = true;
-            } catch (error) {
-                currentInput = 'Ошибка';
-                updateDisplay();
-                shouldResetDisplay = true;
-            }
+            const result = evaluateExpression(currentInput);
+            currentInput = result.value;
+            updateDisplay();
+            shouldResetDisplay = true;
         }
 
         function clearDisplay() {
@@ -299,7 +298,6 @@
             updateDisplay();
         }
 
-        // Поддержка клавиатуры
         document.addEventListener('keydown', function(event) {
             const key = event.key;
             

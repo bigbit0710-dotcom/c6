@@ -5,6 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Калькулятор</title>
     <style>
+        :root {
+            --page-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --calc-bg: #ffffff;
+            --calc-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            --btn-bg: #f0f0f0;
+            --btn-bg-hover: #e0e0e0;
+            --btn-text: #333333;
+            --theme-btn-bg: rgba(255, 255, 255, 0.2);
+            --theme-btn-text: #ffffff;
+        }
+
+        [data-theme="dark"] {
+            --page-bg: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            --calc-bg: #2d2d44;
+            --calc-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            --btn-bg: #3d3d5c;
+            --btn-bg-hover: #4d4d6c;
+            --btn-text: #e0e0e0;
+            --theme-btn-bg: rgba(255, 255, 255, 0.1);
+            --theme-btn-text: #e0e0e0;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -17,17 +39,41 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--page-bg);
             padding: 20px;
+            transition: background 0.3s ease;
         }
 
         .calculator {
-            background: #ffffff;
+            background: var(--calc-bg);
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            box-shadow: var(--calc-shadow);
             padding: 30px;
             max-width: 400px;
             width: 100%;
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .header {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 15px;
+        }
+
+        .theme-toggle {
+            background: var(--theme-btn-bg);
+            color: var(--theme-btn-text);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .theme-toggle:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
         .display {
@@ -53,7 +99,7 @@
         }
 
         button {
-            background: #f0f0f0;
+            background: var(--btn-bg);
             border: none;
             border-radius: 10px;
             font-size: 1.5rem;
@@ -61,11 +107,11 @@
             cursor: pointer;
             transition: all 0.2s;
             font-weight: 600;
-            color: #333;
+            color: var(--btn-text);
         }
 
         button:hover {
-            background: #e0e0e0;
+            background: var(--btn-bg-hover);
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
@@ -109,6 +155,9 @@
 </head>
 <body>
     <div class="calculator">
+        <div class="header">
+            <button class="theme-toggle" id="themeToggle" type="button" aria-label="Переключить тему">🌙 Тёмная</button>
+        </div>
         <div class="display" id="display">0</div>
         <div class="buttons">
             <button class="clear" onclick="clearDisplay()">C</button>
@@ -138,8 +187,23 @@
 
     <script>
         let display = document.getElementById('display');
+        let themeToggle = document.getElementById('themeToggle');
         let currentInput = '0';
         let shouldResetDisplay = false;
+
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            themeToggle.textContent = theme === 'dark' ? '☀️ Светлая' : '🌙 Тёмная';
+            localStorage.setItem('calculator-theme', theme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        }
+
+        applyTheme(localStorage.getItem('calculator-theme') || 'light');
+        themeToggle.addEventListener('click', toggleTheme);
 
         function updateDisplay() {
             display.textContent = currentInput;
